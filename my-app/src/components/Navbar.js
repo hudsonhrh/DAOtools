@@ -16,6 +16,9 @@ const Navbar = () => {
         <Link as={NextLink} href="/demo" color="white" fontWeight="extrabold">
           Demo
         </Link>
+        <Link as={NextLink} href="/dev" color="white" fontWeight="extrabold">
+          Developer
+        </Link>
       </Flex>
     </Box>
   );
