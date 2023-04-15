@@ -18,6 +18,7 @@
     "autoprefixer": "10.4.14",
     "ethers": "^6.3.0",
     "framer-motion": "^10.12.2",
+    "fs": "^0.0.1-security",
     "hardhat": "^2.13.1",
     "next": "13.3.0",
     "postcss": "8.4.21",

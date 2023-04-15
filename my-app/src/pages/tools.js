@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+
 import {
   Box,
   Heading,
@@ -17,6 +19,9 @@ import {
 } from '@chakra-ui/react';
 import { ethers } from "ethers";
 import Web3  from "web3";
+import { compile } from "../sol/compiler";
+
+
 
 
 const Tools = () => {
@@ -24,66 +29,116 @@ const Tools = () => {
   const [daoName, setDaoName] = useState('');
   const [deployedAddress, setDeployedAddress] = useState('');
   const [deploying, setDeploying] = useState(false);
+  const [abi, setAbi] = useState('');
+  const [byteCode, setByteCode] = useState('');
 
-  const handleDeploy = async () => {
-    if (selectedOptions.length && daoName) {
-      setDeploying(true);
   
-      // Compile and deploy the contract
-      try {
-        // Call the API route to compile the contract
-        console.log("check3")
-        const response = await fetch('/api/compile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ selectedOptions }),
-        });
-        console.log("check4")
-        if (!response.ok) {
-          const errorDetails = await response.json();
-          console.error('Error compiling contract:', errorDetails);
-          throw new Error('Error compiling contract');
-        }
-  
-        const { abi, bytecode } = await response.json();
-  
-        // Deploy the contract
-        try {
-          const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
-          const account = web3.eth.accounts.privateKeyToAccount(
-            "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
-          );
-          const contract = new web3.eth.Contract(abi);
-          const deployOptions = {
-            data: bytecode,
-            arguments: [daoName],
-          };
-      
-          const gasPrice = await web3.eth.getGasPrice();
-          const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
-      
-          const signedTx = await account.signTransaction({
-            data: contract.deploy(deployOptions).encodeABI(),
-            gas: gasEstimate,
-            gasPrice: gasPrice,
-            from: account.address,
-            to: '',
-          });
-      
-          const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-          console.log("Contract deployed at address:", receipt.contractAddress);
-        } catch (error) {
-          console.error("Error deploying contract:", error);
-        }
-      } catch (error) {
-        console.error('Error deploying the contract:', error);
-      }
-  
-      setDeploying(false);
+  const getFunctionality = (option) => {
+
+    // Return the Solidity code for each functionality
+    switch (option) {
+      case 'AI Code Review':
+        return `
+  function aiCodeReview() public view returns (string memory) {
+      return "AI Code Review functionality";
+  }
+  `;
+      case 'AI Research Review':
+        return `
+  function aiResearchReview() public view returns (string memory) {
+      return "AI Research Review functionality";
+  }
+  `;
+      case 'Attendance Tracker':
+        return `
+  function attendanceTracker() public view returns (string memory) {
+      return "Attendance Tracker functionality";
+  }
+  `;
+      default:
+        return '';
     }
   };
+
+  const compileContract = async () => {
+    console.log(`check1`)
+    console.log(selectedOptions.length && daoName)
+    if (selectedOptions.length && daoName) {
+      console.log(`check2`)
+      setDeploying(true);
+      
+      const contractTemplate = `
+        pragma solidity ^0.8.0;
+  
+        contract MyDAO {
+            string public name;
+  
+            constructor(string memory _name) {
+                name = _name;
+            }
+  
+            // Functionality Placeholders
+        }
+        `;
+        const source = contractTemplate.replace(
+          '// Functionality Placeholders',
+          selectedOptions.map(getFunctionality).join('\n')
+          
+        );
+      // Compile and deploy the contract
+      try {
+        console.log('check')
+        compile(source).then(contractData => {
+          const data = contractData[0];
+          setByteCode(() => data.byteCode);
+          setAbi(() => data.abi);
+        })
+        
+
+
+
+        console.log(`Bytecode: ${byteCode}`);
+        console.log(`ABI: ${abi}`);
+  
+            // Deploy the contract
+            try {
+              const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
+              const account = web3.eth.accounts.privateKeyToAccount(
+                "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
+              );
+              const contract = new web3.eth.Contract(abi);
+              const deployOptions = {
+                data: byteCode,
+                arguments: [daoName],
+              };
+          
+              const gasPrice = await web3.eth.getGasPrice();
+              const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
+          
+              const signedTx = await account.signTransaction({
+                data: contract.deploy(deployOptions).encodeABI(),
+                gas: gasEstimate,
+                gasPrice: gasPrice,
+                from: account.address,
+                to: '',
+              });
+          
+              const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+              console.log("Contract deployed at address:", receipt.contractAddress);
+              setDeployedAddress(receipt.contractAddress);
+            } catch (error) {
+              console.error("Error deploying contract:", error);
+            }
+  
+      } catch (error) {
+        console.error('Error deploying the contract:', error);
+      } finally {
+        setDeploying(false);
+      }
+    }
+  };
+  
+  
   
 
   return (
@@ -162,7 +217,7 @@ const Tools = () => {
               </FormControl>
               <Button
                 colorScheme="blue"
-                onClick={handleDeploy}
+                onClick={compileContract}
                 disabled={deploying}
               >
                 Deploy Your Contract
