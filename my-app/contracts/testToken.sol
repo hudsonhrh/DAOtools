@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract KUBIX is ERC20, Ownable {
+contract testToken is ERC20, Ownable {
     mapping(address => uint256) private _balances;
 
     uint256 private _totalSupply;
