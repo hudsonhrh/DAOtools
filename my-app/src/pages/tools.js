@@ -15,6 +15,9 @@ import {
   Progress,
   Image,
 } from '@chakra-ui/react';
+import { ethers } from "ethers";
+import Web3  from "web3";
+
 
 const Tools = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -22,15 +25,66 @@ const Tools = () => {
   const [deployedAddress, setDeployedAddress] = useState('');
   const [deploying, setDeploying] = useState(false);
 
-  const handleDeploy = () => {
+  const handleDeploy = async () => {
     if (selectedOptions.length && daoName) {
       setDeploying(true);
-      // Here, you can call the function to deploy the contract and get the deployed address
-      const deployedContractAddress = '0x12345...'; // Replace this with the actual deployed contract address
-      setDeployedAddress(deployedContractAddress);
+  
+      // Compile and deploy the contract
+      try {
+        // Call the API route to compile the contract
+        console.log("check3")
+        const response = await fetch('/api/compile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selectedOptions }),
+        });
+        console.log("check4")
+        if (!response.ok) {
+          const errorDetails = await response.json();
+          console.error('Error compiling contract:', errorDetails);
+          throw new Error('Error compiling contract');
+        }
+  
+        const { abi, bytecode } = await response.json();
+  
+        // Deploy the contract
+        try {
+          const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
+          const account = web3.eth.accounts.privateKeyToAccount(
+            "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
+          );
+          const contract = new web3.eth.Contract(abi);
+          const deployOptions = {
+            data: bytecode,
+            arguments: [daoName],
+          };
+      
+          const gasPrice = await web3.eth.getGasPrice();
+          const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
+      
+          const signedTx = await account.signTransaction({
+            data: contract.deploy(deployOptions).encodeABI(),
+            gas: gasEstimate,
+            gasPrice: gasPrice,
+            from: account.address,
+            to: '',
+          });
+      
+          const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+          console.log("Contract deployed at address:", receipt.contractAddress);
+        } catch (error) {
+          console.error("Error deploying contract:", error);
+        }
+      } catch (error) {
+        console.error('Error deploying the contract:', error);
+      }
+  
       setDeploying(false);
     }
   };
+  
 
   return (
     <Box
