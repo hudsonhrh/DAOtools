@@ -1,5 +1,5 @@
 // src/sol/compiler.js
-export const compile = (contractCode) => {
+export const compile = async(contractCode) => {
     return new Promise((resolve, reject) => {
       const worker = new Worker(new URL("./solc.worker.js", import.meta.url));
   

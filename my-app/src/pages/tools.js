@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect} from 'react';
 import dynamic from 'next/dynamic';
 
 import {
@@ -29,8 +29,7 @@ const Tools = () => {
   const [daoName, setDaoName] = useState('');
   const [deployedAddress, setDeployedAddress] = useState('');
   const [deploying, setDeploying] = useState(false);
-  const [abi, setAbi] = useState('');
-  const [byteCode, setByteCode] = useState('');
+
 
   
   const getFunctionality = (option) => {
@@ -61,75 +60,59 @@ const Tools = () => {
   };
 
   const compileContract = async () => {
-    console.log(`check1`)
-    console.log(selectedOptions.length && daoName)
     if (selectedOptions.length && daoName) {
-      console.log(`check2`)
       setDeploying(true);
-      
+  
       const contractTemplate = `
         pragma solidity ^0.8.0;
   
         contract MyDAO {
-            string public name;
+          string public name;
   
-            constructor(string memory _name) {
-                name = _name;
-            }
+          constructor(string memory _name) {
+            name = _name;
+          }
   
-            // Functionality Placeholders
+          // Functionality Placeholders
         }
-        `;
-        const source = contractTemplate.replace(
-          '// Functionality Placeholders',
-          selectedOptions.map(getFunctionality).join('\n')
-          
-        );
-      // Compile and deploy the contract
+      `;
+      const source = contractTemplate.replace(
+        '// Functionality Placeholders',
+        selectedOptions.map(getFunctionality).join('\n')
+      );
+  
+      // Compile the contract
       try {
-        console.log('check')
-        compile(source).then(contractData => {
-          const data = contractData[0];
-          setByteCode(() => data.byteCode);
-          setAbi(() => data.abi);
-        })
-        
-
-
-
-        console.log(`Bytecode: ${byteCode}`);
-        console.log(`ABI: ${abi}`);
+        const contractData = await compile(source);
+        const data = contractData[0];
+        const byteCode = data.byteCode
+        const abi = data.abi
   
-            // Deploy the contract
-            try {
-              const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
-              const account = web3.eth.accounts.privateKeyToAccount(
-                "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
-              );
-              const contract = new web3.eth.Contract(abi);
-              const deployOptions = {
-                data: byteCode,
-                arguments: [daoName],
-              };
-          
-              const gasPrice = await web3.eth.getGasPrice();
-              const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
-          
-              const signedTx = await account.signTransaction({
-                data: contract.deploy(deployOptions).encodeABI(),
-                gas: gasEstimate,
-                gasPrice: gasPrice,
-                from: account.address,
-                to: '',
-              });
-          
-              const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-              console.log("Contract deployed at address:", receipt.contractAddress);
-              setDeployedAddress(receipt.contractAddress);
-            } catch (error) {
-              console.error("Error deploying contract:", error);
-            }
+        // Deploy the contract
+        const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
+        const account = web3.eth.accounts.privateKeyToAccount(
+          "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
+        );
+        const contract = new web3.eth.Contract(abi);
+        const deployOptions = {
+          data: byteCode,
+          arguments: [daoName],
+        };
   
+        const gasPrice = await web3.eth.getGasPrice();
+        const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
+  
+        const signedTx = await account.signTransaction({
+          data: contract.deploy(deployOptions).encodeABI(),
+          gas: gasEstimate,
+          gasPrice: gasPrice,
+          from: account.address,
+          to: '',
+        });
+  
+        const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        console.log("Contract deployed at address:", receipt.contractAddress);
+        setDeployedAddress(receipt.contractAddress);
       } catch (error) {
         console.error('Error deploying the contract:', error);
       } finally {
@@ -137,6 +120,9 @@ const Tools = () => {
       }
     }
   };
+  
+  
+  
   
   
   
