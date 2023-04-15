@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^2.5.5",
+    "@emotion/react": "^11.10.6",
+    "@emotion/styled": "^11.10.6",
     "autoprefixer": "10.4.14",
+    "framer-motion": "^10.12.2",
     "hardhat": "^2.13.1",
     "next": "13.3.0",
     "postcss": "8.4.21",

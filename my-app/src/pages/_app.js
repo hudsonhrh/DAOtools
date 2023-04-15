@@ -15,7 +15,7 @@ export default function App({ Component, pageProps }) {
     <ChakraProvider theme={theme}>
           <Flex direction="column" minH="100vh">
             <Box as="header">
-              <NavBar />
+              <Navbar />
             </Box>
             <Flex as="main" direction="column" flex="1" overflow="hidden">
               <Component {...pageProps} />
