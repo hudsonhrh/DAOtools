@@ -2,16 +2,17 @@ import React from 'react';
 import {
   Box,
   Heading,
-  Text,
-  Button,
   VStack,
-  Container,
   Input,
+  Button,
   FormControl,
   FormLabel,
   Textarea,
-} from '@chakra-ui/react';
+  useColorMode,
+} from "@chakra-ui/react";
+import { FaMoon, FaSun } from "react-icons/fa";
 import TokenArtifiact from "../abi/testToken.json";
+
 
 const checkTokenBalance = async ( userAddress) => {
   try {
@@ -26,21 +27,46 @@ const checkTokenBalance = async ( userAddress) => {
 };
 
 const Demo = () => {
+  const { colorMode, toggleColorMode } = useColorMode(); // Moved inside the functional component
   const [userAddress, setUserAddress] = React.useState("");
   const [taskRequirements, setTaskRequirements] = React.useState("");
   const [taskSubmission, setTaskSubmission] = React.useState("");
+  const [mintFunctionInput, setMintFunctionInput] = React.useState("");
 
-    return (
-      <Box
-        p={10}
-        minH="100vh"
-        bgGradient="linear(to-b, #f5f5f5, #ffffff)"
-        borderRadius="xl"
+
+  return (
+    <Box
+      p={10}
+      minH="100vh"
+      bgGradient="linear(to-b, #f5f5f5, #ffffff)"
+      borderRadius="xl"
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+    >
+      <Button
+        position="absolute"
+        top={5}
+        right={5}
+        onClick={toggleColorMode}
+        variant="ghost"
+        fontSize="xl"
       >
-      <Heading as="h1" size="2xl" color="black">
+        {colorMode === "light" ? <FaMoon /> : <FaSun />}
+      </Button>
+      <Heading as="h1" size="2xl" color="black" mb={5}>
         Demo Page
       </Heading>
-      <VStack mt={5}>
+      <VStack
+        spacing={6}
+        w="100%"
+        maxW="600px"
+        p={8}
+        boxShadow="lg"
+        borderRadius="md"
+        bg="white"
+      >
         <Input
           placeholder="Enter user address"
           value={userAddress}
@@ -52,6 +78,7 @@ const Demo = () => {
               alert(`Balance of ${userAddress}: ${balance}`)
             )
           }
+          colorScheme="teal"
         >
           Check Token Balance
         </Button>
@@ -71,12 +98,15 @@ const Demo = () => {
             onChange={(e) => setTaskSubmission(e.target.value)}
           />
         </FormControl>
-        <Button onClick={() => console.log(taskRequirements, taskSubmission)}>
+        <Button
+          onClick={() => console.log(taskRequirements, taskSubmission)}
+          colorScheme="teal"
+        >
           Submit Task
         </Button>
       </VStack>
     </Box>
-    );
+  );
   };
   
   export default Demo;

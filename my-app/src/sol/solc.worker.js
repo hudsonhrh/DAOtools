@@ -2,16 +2,18 @@ importScripts("https://binaries.soliditylang.org/bin/soljson-latest.js");
 import wrapper from "solc/wrapper";
 
 self.onmessage = (event) => {
-  const contractCode = event.data.contractCode;
+  const sources = event.data.sources;
   const sourceCode = {
     language: "Solidity",
-    sources: {
-      "contract.sol": { content: contractCode },
-    },
+    sources: {},
     settings: {
       outputSelection: { "*": { "*": ["*"] } },
     },
   };
+
+  for (const [filename, content] of Object.entries(sources)) {
+    sourceCode.sources[filename] = { content };
+  }
 
   console.log("Input:", sourceCode);
 
@@ -26,3 +28,4 @@ self.onmessage = (event) => {
     output: compiledOutput,
   });
 };
+

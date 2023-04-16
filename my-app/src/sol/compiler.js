@@ -1,5 +1,5 @@
 // src/sol/compiler.js
-export const compile = async(contractCode) => {
+export const compile = async (sources) => {
     return new Promise((resolve, reject) => {
       const worker = new Worker(new URL("./solc.worker.js", import.meta.url));
   
@@ -25,7 +25,7 @@ export const compile = async(contractCode) => {
   
       worker.onerror = reject;
       worker.postMessage({
-        contractCode: contractCode,
+        sources: sources,
       });
     });
   };

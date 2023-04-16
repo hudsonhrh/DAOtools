@@ -1,5 +1,6 @@
 import React, { useState , useEffect} from 'react';
 import dynamic from 'next/dynamic';
+import background from '../../public/background.jpg';
 
 import {
   Box,
@@ -27,13 +28,13 @@ import { compile } from "../sol/compiler";
 const Tools = () => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [daoName, setDaoName] = useState('');
+  const [mint, setMint] = useState('');
   const [deployedAddress, setDeployedAddress] = useState('');
   const [deploying, setDeploying] = useState(false);
 
 
   
   const getFunctionality = (option) => {
-
     // Return the Solidity code for each functionality
     switch (option) {
       case 'AI Code Review':
@@ -54,31 +55,104 @@ const Tools = () => {
       return "Attendance Tracker functionality";
   }
   `;
+      case 'Combined Functionality':
+        return `
+  function combinedFunctionality() public view returns (string memory) {
+      return "Combined AI Code Review and AI Research Review functionality";
+  }
+  `;
       default:
         return '';
     }
   };
+  
 
   const compileContract = async () => {
     if (selectedOptions.length && daoName) {
       setDeploying(true);
   
-      const contractTemplate = `
-        pragma solidity ^0.8.0;
+      const bothSelected = selectedOptions.includes('AI Code Review') && selectedOptions.includes('AI Research Review');
+      const updatedOptions = bothSelected
+        ? selectedOptions.filter((option) => option !== 'AI Code Review' && option !== 'AI Research Review').concat('Combined Functionality')
+        : selectedOptions;
   
-        contract MyDAO {
-          string public name;
-  
-          constructor(string memory _name) {
-            name = _name;
+      const contractTemplate= `
+      // SPDX-License-Identifier: MIT
+      pragma solidity ^0.8.7;
+      
+      import {Functions, FunctionsClient} from "./dev/functions/FunctionsClient.sol";
+      
+      import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+      
+      import {IDAO} from  "./Interface.sol";
+      
+      
+      contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
+        using Functions for Functions.Request;
+      
+        bytes32 public latestRequestId;
+        bytes public latestResponse;
+        bytes public latestError;
+      
+        IDAO DAO;
+      
+        
+      
+        event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
+      
+        
+        constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
+      
+
+        function executeRequest(
+          string calldata source,
+          bytes calldata secrets,
+          string[] calldata args,
+          uint64 subscriptionId,
+          uint32 gasLimit
+        ) public onlyOwner returns (bytes32) {
+          Functions.Request memory req;
+          req.initializeRequest(Functions.Location.Inline, Functions.CodeLanguage.JavaScript, source);
+          if (secrets.length > 0) {
+            req.addRemoteSecrets(secrets);
           }
-  
-          // Functionality Placeholders
+          if (args.length > 0) req.addArgs(args);
+      
+          bytes32 assignedReqID = sendRequest(req, subscriptionId, gasLimit);
+          latestRequestId = assignedReqID;
+          
+      
+          return assignedReqID;
         }
+      
+        
+      
+        function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+          latestResponse = response;
+          latestError = err;
+          
+          bytes32 answer = bytes32(response);
+          
+        
+          
+    
+          // Functionality Placeholders
+          
+      
+
+          
+        function updateOracleAddress(address oracle) public onlyOwner {
+          setOracle(oracle);
+        }
+      
+        function addSimulatedRequestId(address oracleAddress, bytes32 requestId) public onlyOwner {
+          addExternalRequest(oracleAddress, requestId);
+        }
+      }
       `;
       const source = contractTemplate.replace(
         '// Functionality Placeholders',
-        selectedOptions.map(getFunctionality).join('\n')
+        updatedOptions.map(getFunctionality).join('\n')
       );
   
       // Compile the contract
@@ -93,15 +167,18 @@ const Tools = () => {
         const account = web3.eth.accounts.privateKeyToAccount(
           "0x" + process.env.NEXT_PUBLIC_PRIVATE_KEY
         );
+        const oracleAddress = "0xeA6721aC65BCeD841B8ec3fc5fEdeA6141a0aDE4";
+
         const contract = new web3.eth.Contract(abi);
         const deployOptions = {
+          from: account.address,
           data: byteCode,
-          arguments: [daoName],
+          arguments: [oracleAddress],
         };
-  
+    
         const gasPrice = await web3.eth.getGasPrice();
         const gasEstimate = await contract.deploy(deployOptions).estimateGas({ from: account.address });
-  
+    
         const signedTx = await account.signTransaction({
           data: contract.deploy(deployOptions).encodeABI(),
           gas: gasEstimate,
@@ -109,19 +186,14 @@ const Tools = () => {
           from: account.address,
           to: '',
         });
-  
+    
         const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
         console.log("Contract deployed at address:", receipt.contractAddress);
-        setDeployedAddress(receipt.contractAddress);
       } catch (error) {
-        console.error('Error deploying the contract:', error);
-      } finally {
-        setDeploying(false);
+        console.error("Error deploying contract:", error);
       }
-    }
+    };
   };
-  
-  
   
   
   
@@ -134,18 +206,6 @@ const Tools = () => {
       bgGradient="linear(to-b, #f5f5f5, #ffffff)"
       borderRadius="xl"
     >
-      <Image
-        src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f18"
-        alt="Background image"
-        position="fixed"
-        zIndex="-1"
-        top="0"
-        left="0"
-        w="100vw"
-        h="100vh"
-        objectFit="cover"
-        opacity="0.3"
-      />
       <Center>
         <Container maxW="container.md">
           <Box
@@ -180,7 +240,7 @@ const Tools = () => {
                 onChange={setSelectedOptions}
                 value={selectedOptions}
               >
-                <VStack alignItems="start">
+                <VStack  alignItems="start">
                   <Checkbox size="lg" value="AI Code Review">
                     AI Code Review
                   </Checkbox>
@@ -194,11 +254,19 @@ const Tools = () => {
               </CheckboxGroup>
               </Box>
               <FormControl id="daoName">
-                <FormLabel size="lg">Input your DAO name</FormLabel>
+                <FormLabel size="lg">Input your DAO Token contract adress</FormLabel>
                 <Input
                   value={daoName}
                   onChange={(e) => setDaoName(e.target.value)}
-                  placeholder="Your DAO Name"
+                  placeholder="DAO Contract Adress"
+                />
+              </FormControl>
+              <FormControl id="mintFunction">
+                <FormLabel size="lg">Input your DAO Tokens mint function</FormLabel>
+                <Input
+                  value={mint}
+                  onChange={(e) => setMint(e.target.value)}
+                  placeholder="Token Mint Function"
                 />
               </FormControl>
               <Button
