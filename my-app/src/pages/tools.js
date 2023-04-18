@@ -1,6 +1,9 @@
 import React, { useState , useEffect} from 'react';
 import dynamic from 'next/dynamic';
-import background from '../../public/background.jpg';
+//import FunctionsClientSource from '../abi/FunctionsClientSource';
+//import ConfirmedOwnerSource from '../abi/ConfirmedOwnerSource';
+
+
 
 import {
   Box,
@@ -21,7 +24,17 @@ import {
 import { ethers } from "ethers";
 import Web3  from "web3";
 import { compile } from "../sol/compiler";
-
+import {submitRequest} from "../components/submitRequest";
+import Buffer from "../Solidity_to_javascript/Buffer";
+import CBOR from "../Solidity_to_javascript/CBOR";
+import DependencyConfirmedOwner from "../Solidity_to_javascript/ConfirmedOwner";
+import ConfirmedOwnerWithProposal from "../Solidity_to_javascript/ConfirmedOwnerWithProposal";
+import Functions from "../Solidity_to_javascript/Functions";
+import FunctionsBillingRegistryInterface from '../Solidity_to_javascript/FunctionsBillingRegistryInterface';
+import FunctionsClient from '../Solidity_to_javascript/FunctionsClient';
+import FunctionsClientInterface from '../Solidity_to_javascript/FunctionsClientInterface';
+import FunctionsOracleInterface from '@/Solidity_to_javascript/FunctionsOracleInterface';
+import OwnableInterface from '@/Solidity_to_javascript/OwnableInterface';
 
 
 
@@ -31,6 +44,21 @@ const Tools = () => {
   const [mint, setMint] = useState('');
   const [deployedAddress, setDeployedAddress] = useState('');
   const [deploying, setDeploying] = useState(false);
+  const [additionalSources, setAdditionalSources] = useState({
+    "Buffer.sol": { content: Buffer },
+    "CBOR.sol": { content: CBOR },
+    "ConfirmedOwner.sol": { content: DependencyConfirmedOwner },
+    "ConfirmedOwnerWithProposal.sol": { content: ConfirmedOwnerWithProposal },
+    "Functions.sol": { content: Functions },
+    "FunctionsBillingRegistryInterface.sol": { content: FunctionsBillingRegistryInterface },
+    "FunctionsClient.sol": { content: FunctionsClient },
+    "FunctionsClientInterface.sol": { content: FunctionsClientInterface },
+    "FunctionsOracleInterface.sol": { content: FunctionsOracleInterface },
+    "OwnableInterface.sol": { content: OwnableInterface },
+  });
+  
+  
+
 
 
   
@@ -76,16 +104,17 @@ const Tools = () => {
         ? selectedOptions.filter((option) => option !== 'AI Code Review' && option !== 'AI Research Review').concat('Combined Functionality')
         : selectedOptions;
   
-      const contractTemplate= `
-      // SPDX-License-Identifier: MIT
-      pragma solidity ^0.8.7;
+        const contractTemplate = `
+        // SPDX-License-Identifier: MIT
+        pragma solidity ^0.8.7;
+        
+
+        import {Functions, FunctionsClient} from "FunctionsClient.sol";
+        import {ConfirmedOwner} from "ConfirmedOwner.sol";
+
       
-      import {Functions, FunctionsClient} from "./dev/functions/FunctionsClient.sol";
-      
-      import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
-      
-      import {IDAO} from  "./Interface.sol";
-      
+        
+        //interface
       
       contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         using Functions for Functions.Request;
@@ -93,8 +122,7 @@ const Tools = () => {
         bytes32 public latestRequestId;
         bytes public latestResponse;
         bytes public latestError;
-      
-        IDAO DAO;
+    
       
         
       
@@ -136,10 +164,9 @@ const Tools = () => {
         
           
     
-          // Functionality Placeholders
           
       
-
+        }
           
         function updateOracleAddress(address oracle) public onlyOwner {
           setOracle(oracle);
@@ -155,12 +182,23 @@ const Tools = () => {
         updatedOptions.map(getFunctionality).join('\n')
       );
   
-      // Compile the contract
+      let byteCode=""
+      let abi=""
+      console.log("Source:", source);
       try {
-        const contractData = await compile(source);
-        const data = contractData[0];
-        const byteCode = data.byteCode
-        const abi = data.abi
+        try {
+          const contractData = await compile(source, additionalSources );
+          
+    
+          const data = contractData['FunctionsConsumer'];
+          byteCode = data.byteCode;
+          abi = data.abi;
+          console.log("byteCode",byteCode)
+          // Rest of the deployment code
+        } catch (error) {
+          console.error("Error deploying contract:", error);
+        }
+        
   
         // Deploy the contract
         const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
@@ -194,9 +232,19 @@ const Tools = () => {
       }
     };
   };
+
+
+    const handleSubmit = async () => {
+      const prompt = 'I am testing a project using you, only send the response 11 without a period or new line';
+      try {
+        const result = await submitRequest(prompt);
+        console.log('Request submitted successfully:', result);
+      } catch (error) {
+        console.error('Request submission failed:', error);
+      }
+    };
   
-  
-  
+
   
 
   return (
@@ -282,8 +330,12 @@ const Tools = () => {
                   <strong>{deployedAddress}</strong>
                 </Text>
               )}
+              
             </VStack>
           </Box>
+          <Button onClick={handleSubmit}>
+      Submit Request
+    </Button>
         </Container>
       </Center>
     </Box>

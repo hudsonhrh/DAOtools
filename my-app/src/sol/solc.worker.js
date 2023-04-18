@@ -1,31 +1,24 @@
-importScripts("https://binaries.soliditylang.org/bin/soljson-latest.js");
-import wrapper from "solc/wrapper";
+importScripts('https://binaries.soliditylang.org/bin/soljson-latest.js');
+const wrapper = require('solc/wrapper');
 
 self.onmessage = (event) => {
-  const sources = event.data.sources;
-  const sourceCode = {
-    language: "Solidity",
-    sources: {},
-    settings: {
-      outputSelection: { "*": { "*": ["*"] } },
-    },
-  };
+    const contractCode = event.data.contractCode;
+    const additionalSources = event.data.additionalSources || {};
 
-  for (const [filename, content] of Object.entries(sources)) {
-    sourceCode.sources[filename] = { content };
-  }
-
-  console.log("Input:", sourceCode);
-
-  const compiler = wrapper(self.Module);
-  const compiledOutput = JSON.parse(
-    compiler.compile(JSON.stringify(sourceCode))
-  );
-
-  console.log("Output:", compiledOutput);
-
-  self.postMessage({
-    output: compiledOutput,
-  });
+    const sourceCode = {
+        language: 'Solidity',
+        sources: {
+            "contract.sol": {content: contractCode} ,
+            ...additionalSources
+        },
+        
+        settings: {
+            outputSelection: { '*': { '*': ['*'] } }
+        }
+    };
+    console.log(sourceCode);
+    const compiler = wrapper((self).Module);
+    self.postMessage({
+        output: JSON.parse(compiler.compile(JSON.stringify(sourceCode)))
+    });
 };
-

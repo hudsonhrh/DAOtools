@@ -14,6 +14,7 @@ import { FaMoon, FaSun } from "react-icons/fa";
 import TokenArtifiact from "../abi/testToken.json";
 
 
+
 const checkTokenBalance = async ( userAddress) => {
   try {
     const web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
@@ -32,6 +33,8 @@ const Demo = () => {
   const [taskRequirements, setTaskRequirements] = React.useState("");
   const [taskSubmission, setTaskSubmission] = React.useState("");
   const [mintFunctionInput, setMintFunctionInput] = React.useState("");
+  const [payoutAmount, setPayoutAmount] = React.useState("");
+  const [userAddress2, setUserAddress2] = React.useState("");
 
 
   return (
@@ -45,16 +48,6 @@ const Demo = () => {
       justifyContent="center"
       alignItems="center"
     >
-      <Button
-        position="absolute"
-        top={5}
-        right={5}
-        onClick={toggleColorMode}
-        variant="ghost"
-        fontSize="xl"
-      >
-        {colorMode === "light" ? <FaMoon /> : <FaSun />}
-      </Button>
       <Heading as="h1" size="2xl" color="black" mb={5}>
         Demo Page
       </Heading>
@@ -98,6 +91,18 @@ const Demo = () => {
             onChange={(e) => setTaskSubmission(e.target.value)}
           />
         </FormControl>
+        <FormLabel>Address of Task Submitter</FormLabel>
+        <Input
+          placeholder="Enter user address"
+          value={userAddress2}
+          onChange={(e) => setUserAddress2(e.target.value)}
+        />
+       <FormLabel>Payout Amount</FormLabel>
+        <Input
+          placeholder="Enter user address"
+          value={payoutAmount}
+          onChange={(e) => setPayoutAmount(e.target.value)}
+        />
         <Button
           onClick={() => console.log(taskRequirements, taskSubmission)}
           colorScheme="teal"
