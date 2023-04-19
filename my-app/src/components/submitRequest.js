@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { ethers } from 'ethers';
 
-export async function submitRequest(prompt) {
+export async function submitRequest(prompt, userAddress, amount) {
 
     
     
@@ -87,7 +87,9 @@ export async function submitRequest(prompt) {
             overrides = {
               //Gas limit for the Chainlink Functions request
               gasLimit: requestGas
-            }
+            }, 
+            userAddress,
+            amount
           )
     
         // If a response is not received within 5 minutes, the request has failed
